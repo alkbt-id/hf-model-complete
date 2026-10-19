@@ -1,0 +1,48 @@
+{
+  "name": "hf-model-complete",
+  "displayName": "HF Model Complete",
+  "description": "Autocomplete Hugging Face model ids inside from_pretrained('...')",
+  "version": "0.0.3",
+  "publisher": "local",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/alkbt-id/hf-model-complete"
+  },
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "activationEvents": [
+    "onLanguage:python"
+  ],
+  "main": "./extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "hfModelComplete.insertModelId",
+        "title": "Insert Model Name",
+        "category": "HF Model Complete"
+      },
+      {
+        "command": "hfModelComplete.clearCache",
+        "title": "Clear Model Name Cache",
+        "category": "HF Model Complete"
+      }
+    ],
+    "menus": {
+      "commandPalette": [
+        {
+          "command": "hfModelComplete.insertModelId",
+          "when": "editorIsOpen && !editorReadonly"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "hfModelComplete.insertModelId",
+          "when": "!editorReadonly",
+          "group": "1_modification"
+        }
+      ]
+    }
+  }
+}
