@@ -82,12 +82,32 @@ async function searchModels(query) {
 
 const describe = (model) => `${model.pipeline_tag ?? '—'} · ${model.downloads?.toLocaleString() ?? '?'} downloads`;
 
+// Model id typed right before the cursor, used when the list is opened from the context menu.
+const ID_RE = /[\w\-./]*$/;
+let suggestRequested = false; // set by the context menu command, taken by the next suggest request
+let session = null; // { uri, line, start }: where the context-menu list was opened; lives while the id is being typed
+
+function queryAt(document, position, context) {
+  const before = document.lineAt(position).text.slice(0, position.character);
+  if (context.triggerKind === vscode.CompletionTriggerKind.Invoke) {
+    const query = ID_RE.exec(before)[0];
+    session = suggestRequested ? { uri: document.uri.toString(), line: position.line, start: position.character - query.length } : null;
+    suggestRequested = false;
+  }
+  if (session) {
+    const typed = before.slice(session.start);
+    const same = session.uri === document.uri.toString() && session.line === position.line;
+    if (same && position.character >= session.start && ID_RE.exec(typed)[0] === typed) return typed;
+    session = null; // the cursor left the id: back to from_pretrained-only mode
+  }
+  if (document.languageId !== 'python') return undefined;
+  return CALL_RE.exec(before)?.[2];
+}
+
 const provider = {
-  async provideCompletionItems(document, position, token) {
-    const before = document.lineAt(position).text.slice(0, position.character);
-    const m = CALL_RE.exec(before);
-    if (!m) return undefined;
-    const query = m[2];
+  async provideCompletionItems(document, position, token, context) {
+    const query = queryAt(document, position, context);
+    if (query === undefined) return undefined;
 
     // Wait for a pause in typing; a new keystroke cancels this call.
     await sleep(200);
@@ -95,7 +115,7 @@ const provider = {
 
     const models = await searchModels(query);
 
-    // Replace everything typed between the quote and the cursor.
+    // Replace everything typed between the quote (or the start of the id) and the cursor.
     const range = new vscode.Range(position.line, position.character - query.length, position.line, position.character);
     const items = models.map((model, i) => {
       const item = new vscode.CompletionItem(model.id, vscode.CompletionItemKind.Module);
@@ -173,15 +193,22 @@ async function insertModelId() {
   if (id) await editor.edit((edit) => editor.selections.forEach((sel) => edit.replace(sel, id)));
 }
 
+// Context menu: open the suggest list at the cursor with model ids, in any file.
+async function suggestModelId() {
+  suggestRequested = true;
+  await vscode.commands.executeCommand('editor.action.triggerSuggest');
+}
+
 function activate(context) {
   state = context.globalState;
   apiCache = state.get(API_CACHE_KEY, {});
   apiCache = freshApiCache();
   loadIndex(context);
   context.subscriptions.push(
-    vscode.languages.registerCompletionItemProvider({ language: 'python' }, provider, ...TRIGGERS),
+    vscode.languages.registerCompletionItemProvider({ pattern: '**' }, provider, ...TRIGGERS),
     vscode.commands.registerCommand('hfModelComplete.clearCache', () => clearCache(context)),
     vscode.commands.registerCommand('hfModelComplete.insertModelId', insertModelId),
+    vscode.commands.registerCommand('hfModelComplete.suggestModelId', suggestModelId),
   );
 }
 

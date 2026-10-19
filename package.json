@@ -2,7 +2,7 @@
   "name": "hf-model-complete",
   "displayName": "HF Model Complete",
   "description": "Autocomplete Hugging Face model ids inside from_pretrained('...')",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "publisher": "local",
   "license": "MIT",
   "repository": {
@@ -24,15 +24,25 @@
         "category": "HF Model Complete"
       },
       {
+        "command": "hfModelComplete.suggestModelId",
+        "title": "Insert Model Name"
+      },
+      {
         "command": "hfModelComplete.clearCache",
         "title": "Clear Model Name Cache",
         "category": "HF Model Complete"
       }
     ],
     "menus": {
+      "commandPalette": [
+        {
+          "command": "hfModelComplete.suggestModelId",
+          "when": "false"
+        }
+      ],
       "editor/context": [
         {
-          "command": "hfModelComplete.insertModelId",
+          "command": "hfModelComplete.suggestModelId",
           "when": "!editorReadonly",
           "group": "1_modification"
         }
