@@ -133,7 +133,10 @@ async function clearCache(context) {
 // Pick a model in a search box and insert its id at the cursor; selected text becomes the query and is replaced.
 async function insertModelId() {
   const editor = vscode.window.activeTextEditor;
-  if (!editor) return;
+  if (!editor) {
+    vscode.window.showWarningMessage('HF Model Complete: open a file to insert a model name into.');
+    return;
+  }
   const pick = vscode.window.createQuickPick();
   pick.placeholder = 'Search Hugging Face models';
   pick.value = editor.document.getText(editor.selection).trim();
